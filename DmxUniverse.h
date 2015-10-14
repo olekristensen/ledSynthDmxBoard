@@ -21,7 +21,6 @@
 */
 
 #include "Arduino.h"
-#include <DmxSimple.h>
 
 class DmxFixture {
   public:
@@ -52,6 +51,21 @@ class DmxFixtureCWVW8bit : public DmxFixture {
     };
 };
 
+class DmxFixtureVWCW8bit : public DmxFixture {
+  public:
+    DmxFixtureVWCW8bit(int kelvinLow = 2700, int kelvinHigh = 6500, int channelCount = 2) : DmxFixture(kelvinLow, kelvinHigh, channelCount) {
+      ;
+    }
+    const static float gamma = 1.2;
+    float invGamma = 1.0 / gamma;
+    uint8_t setChannels(byte data[], int startChannel, float normalisedIntensity, int temperatureKelvin) {
+      float temperatureNormalisedInRange = constrain(mapFloat(temperatureKelvin, _kelvinLow, _kelvinHigh, 0.0, 1.0), 0.0, 1.0);
+      data[startChannel] = byte(round(pow(1.0 - temperatureNormalisedInRange, invGamma) * normalisedIntensity * 255));
+      data[startChannel + 1] = byte(round(pow((temperatureNormalisedInRange), invGamma) * normalisedIntensity * 255));
+      return _channelCount;
+    };
+};
+
 class DmxFixtureIT8bit : public DmxFixture {
   public:
     DmxFixtureIT8bit(int kelvinLow = 2700, int kelvinHigh = 6500, int channelCount = 2) : DmxFixture(kelvinLow, kelvinHigh, channelCount) {
@@ -64,7 +78,6 @@ class DmxFixtureIT8bit : public DmxFixture {
       return _channelCount;
     };
 };
-
 
 class DmxFixtureTI8bit : public DmxFixture {
   public:
@@ -88,7 +101,14 @@ class TVL2000 : public DmxFixtureCWVW8bit {
 
 class ElforskSpot : public DmxFixtureIT8bit {
   public:
-    ElforskSpot(int kelvinLow = 2700, int kelvinHigh = 6500, int channelCount = 2) : DmxFixtureIT8bit(kelvinLow, kelvinHigh, channelCount) {
+    ElforskSpot(int kelvinLow = 2100, int kelvinHigh = 4300, int channelCount = 2) : DmxFixtureIT8bit(kelvinLow, kelvinHigh, channelCount) {
+      ;
+    };
+};
+
+class ElforskStrip : public DmxFixtureVWCW8bit {
+  public:
+    ElforskStrip(int kelvinLow = 2200, int kelvinHigh = 5000, int channelCount = 2) : DmxFixtureVWCW8bit(kelvinLow, kelvinHigh, channelCount) {
       ;
     };
 };
@@ -140,8 +160,27 @@ class DmxUniverse {
       }
       return currentAddress;
     };
-/*
+
     int updateDmxMaster(DMX_Master master) {
+      int currentAddress = 0;
+      if (needsUpdate) {
+        DmxFixture * currentFixture = head;
+        while (currentFixture != NULL) {
+          currentAddress += currentFixture->setChannels(data, currentAddress, _intensity, _kelvin);
+          currentFixture = currentFixture->next;
+        }
+        
+
+        for (int i = 0; i < currentAddress; i++) {
+          master.setChannelValue ( i+1, data[i] );
+        }
+        needsUpdate = false;
+      }
+      return currentAddress;
+    };
+
+/*
+    int updateDmxMaster() {
       int currentAddress = 0;
       if (needsUpdate) {
         DmxFixture * currentFixture = head;
@@ -151,14 +190,14 @@ class DmxUniverse {
         }
 
         for (int i = 0; i < currentAddress; i++) {
-          master.setChannelValue ( i, data[i] );
+          DmxMaster.write ( i, data[i] );
         }
         needsUpdate = false;
       }
       return currentAddress;
     };
-  */  
-    int updateDmxSimple() {
+*/
+/*    int updateDmxSimple() {
       int currentAddress = 0;
       if (needsUpdate) {
         DmxFixture * currentFixture = head;
@@ -174,7 +213,7 @@ class DmxUniverse {
       }
       return currentAddress;
     };
-  
+*/
     void addFixture(DmxFixture * newFixture) {
       newFixture->next = NULL;
 

@@ -1,39 +1,44 @@
 #include "utils.h"
 #include <Wire.h>
 #include "Biquad.h"
+#include <Conceptinetics.h>
 #include "DmxUniverse.h"
-#include <DmxSimple.h>
 
 #define DMX_MASTER_CHANNELS 200
+#define RXEN_PIN            2
 
-int intensityPromille = 0;
-int temperatureKelvin = 2700;
+DMX_Master dmx_master ( DMX_MASTER_CHANNELS, RXEN_PIN );
 
-Biquad *intensityFilter = new Biquad(bq_type_lowpass, 2.5 / 20,  0.7071, 0.0);
-Biquad *temperatureFilter = new Biquad(bq_type_lowpass, 2.5 / 20,  0.7071, 0.0);
+unsigned int intensityPromille = 0;
+unsigned int temperatureKelvin = 2700;
+
+float intensityPromilleOutputFiltered = intensityPromille;
+float temperatureKelvinOutputFiltered = temperatureKelvin;
+
+byte hbInt;
+byte lbInt;
+byte hbTemp;
+byte lbTemp;
+
+boolean newValue = false;
+
+Biquad *intensityFilter = new Biquad(bq_type_lowpass, 2.5 / 20.0,  0.7071, 0.0);
+Biquad *temperatureFilter = new Biquad(bq_type_lowpass, 2.5 / 20.0,  0.7071, 0.0);
 
 DmxUniverse dmxUniverse(DMX_MASTER_CHANNELS);
 
 void setup() {
 
-  pinMode(13, OUTPUT);
-
   // WIRE
 
-  Wire.setClock(400);
-  Wire.begin(100);              // join i2c bus with address #100 0x64
+  Wire.setClock(400000L);
+  //Wire.setClock(400);
+  Wire.onRequest(requestEvent); // register event
   Wire.onReceive(receiveEvent); // register event
+  Wire.begin(100);              // join i2c bus with address #100 0x64
 
-
-  // DMX SHIELD
-
-  DmxSimple.usePin(4);
-
-  DmxSimple.maxChannel(DMX_MASTER_CHANNELS);
-
-  // Set shield to output mode
-  pinMode (2, OUTPUT);
-  digitalWrite (2, HIGH);
+  pinMode(13, OUTPUT);
+  digitalWrite (13, LOW);
 
   // DMX FIXTURES
 
@@ -52,64 +57,157 @@ void setup() {
 
   */
 
+  // 001
   dmxUniverse.addFixture(new ElforskSpot());
   dmxUniverse.addFixture(new ElforskSpot());
   dmxUniverse.addFixture(new ElforskSpot());
   dmxUniverse.addFixture(new ElforskSpot());
   dmxUniverse.addFixture(new ElforskSpot());
 
+  // 011
   dmxUniverse.addFixture(new ElforskSpot());
   dmxUniverse.addFixture(new ElforskSpot());
   dmxUniverse.addFixture(new ElforskSpot());
   dmxUniverse.addFixture(new ElforskSpot());
   dmxUniverse.addFixture(new ElforskSpot());
 
+  // 021
   dmxUniverse.addFixture(new ElforskSpot());
   dmxUniverse.addFixture(new ElforskSpot());
   dmxUniverse.addFixture(new ElforskSpot());
   dmxUniverse.addFixture(new ElforskSpot());
   dmxUniverse.addFixture(new ElforskSpot());
 
+  // 031
   dmxUniverse.addFixture(new ElforskSpot());
   dmxUniverse.addFixture(new ElforskSpot());
   dmxUniverse.addFixture(new ElforskSpot());
   dmxUniverse.addFixture(new ElforskSpot());
   dmxUniverse.addFixture(new ElforskSpot());
+
+  // 041
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+
+  // 051
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+
+  // 061
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+
+  // 071
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+
+  // 081
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+
+  // 091
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+  dmxUniverse.addFixture(new ElforskSpot());
+
+  // 101
+  dmxUniverse.addFixture(new ElforskStrip());
+  dmxUniverse.addFixture(new ElforskStrip());
+  dmxUniverse.addFixture(new ElforskStrip());
+  dmxUniverse.addFixture(new ElforskStrip());
+  dmxUniverse.addFixture(new ElforskStrip());
+
+  // 111
+  dmxUniverse.addFixture(new ElforskStrip());
+  dmxUniverse.addFixture(new ElforskStrip());
+  dmxUniverse.addFixture(new ElforskStrip());
+  dmxUniverse.addFixture(new ElforskStrip());
+  dmxUniverse.addFixture(new ElforskStrip());
+
+  // 121
+  dmxUniverse.addFixture(new ElforskStrip());
+  dmxUniverse.addFixture(new ElforskStrip());
+  dmxUniverse.addFixture(new ElforskStrip());
+  dmxUniverse.addFixture(new ElforskStrip());
+  dmxUniverse.addFixture(new ElforskStrip());
+
+  // 131
+  dmxUniverse.addFixture(new ElforskStrip());
+  dmxUniverse.addFixture(new ElforskStrip());
+  dmxUniverse.addFixture(new ElforskStrip());
+  dmxUniverse.addFixture(new ElforskStrip());
+  dmxUniverse.addFixture(new ElforskStrip());
+
+  // 141
+  dmxUniverse.addFixture(new ElforskStrip());
+  dmxUniverse.addFixture(new ElforskStrip());
+  dmxUniverse.addFixture(new ElforskStrip());
+  dmxUniverse.addFixture(new ElforskStrip());
+  dmxUniverse.addFixture(new ElforskStrip());
+
+  // DMX SHIELD
+
+  dmx_master.enable();  
+  dmx_master.setChannelRange ( 1, DMX_MASTER_CHANNELS, 0 );
+
 }
 
 void loop() {
 
+    intensityPromille = word(hbInt, lbInt);
+    temperatureKelvin = word(hbTemp, lbTemp);
+
   // FILTER OUTPUT
 
-//  float intensityPromilleOutputFiltered = intensityFilter->process(intensityPromille);
-//  float temperatureKelvinOutputFiltered = temperatureFilter->process(temperatureKelvin);
+  intensityPromilleOutputFiltered = intensityFilter->process(intensityPromille);
+  temperatureKelvinOutputFiltered = temperatureFilter->process(temperatureKelvin);
 
-  float intensityPromilleOutputFiltered = intensityPromille;
-  float temperatureKelvinOutputFiltered = temperatureKelvin;
+  analogWrite(9, map(round(intensityPromilleOutputFiltered), 0, 1000, 0, 255));
 
-  dmxUniverse.setIntensity(constrain(intensityPromilleOutputFiltered / 1000.0, 0.0, 1.0));
+  //intensityPromilleOutputFiltered = 1000;
+  //temperatureKelvinOutputFiltered = temperatureKelvin;
+
+  dmxUniverse.setIntensity(constrain(intensityPromille / 1000.0, 0.0, 1.0));
   dmxUniverse.setTemperatureKelvin(round(temperatureKelvinOutputFiltered));
 
-  //  dmxUniverse.updateDmxMaster(dmx_master);
-  dmxUniverse.updateDmxSimple();
-
+  dmxUniverse.updateDmxMaster(dmx_master);
+  // dmxUniverse.updateDmxSimple();
 }
 
 void receiveEvent(int howMany)
 {
-  digitalWrite(13, HIGH);   // turn the LED on
-
-  byte hb;
-  byte lb;
-
   if (Wire.available() == 4)   // if four bytes were received
   {
-    lb = Wire.read();
-    hb = Wire.read();
-    intensityPromille = word(hb, lb);
-    lb = Wire.read();
-    hb = Wire.read();
-    temperatureKelvin = word(hb, lb);
-     digitalWrite(13, LOW);
+    lbInt = Wire.read();
+    hbInt = Wire.read();
+    lbTemp = Wire.read();
+    hbTemp = Wire.read();
   }
+}
+
+void requestEvent()
+{
+  byte tStartLow = lowByte(dmxUniverse.getKelvinLow());
+  byte tStartHi = highByte(dmxUniverse.getKelvinLow());
+  byte tEndLow = lowByte(dmxUniverse.getKelvinHigh());
+  byte tEndHi = highByte(dmxUniverse.getKelvinHigh());
+  byte data[] = {tStartLow, tStartHi, tEndLow, tEndHi};
+  Wire.write(data, 4);
 }
