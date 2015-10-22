@@ -7,20 +7,13 @@
 #define DMX_MASTER_CHANNELS 200
 #define RXEN_PIN            2
 
-DMX_Master dmx_master ( DMX_MASTER_CHANNELS, RXEN_PIN );
+DMX_Master        dmx_master ( DMX_MASTER_CHANNELS, RXEN_PIN );
 
 unsigned int intensityPromille = 0;
 unsigned int temperatureKelvin = 2700;
 
 float intensityPromilleOutputFiltered = intensityPromille;
 float temperatureKelvinOutputFiltered = temperatureKelvin;
-
-byte hbInt;
-byte lbInt;
-byte hbTemp;
-byte lbTemp;
-
-boolean newValue = false;
 
 Biquad *intensityFilter = new Biquad(bq_type_lowpass, 2.5 / 20.0,  0.7071, 0.0);
 Biquad *temperatureFilter = new Biquad(bq_type_lowpass, 2.5 / 20.0,  0.7071, 0.0);
@@ -34,7 +27,6 @@ void setup() {
   Wire.setClock(400000L);
   //Wire.setClock(400);
   Wire.onRequest(requestEvent); // register event
-  Wire.onReceive(receiveEvent); // register event
   Wire.begin(100);              // join i2c bus with address #100 0x64
 
   pinMode(13, OUTPUT);
@@ -164,42 +156,35 @@ void setup() {
 
   // DMX SHIELD
 
-  dmx_master.enable();  
+  dmx_master.enable ();  
+  
+  // Set channel 1 - 50 @ 50%
   dmx_master.setChannelRange ( 1, DMX_MASTER_CHANNELS, 0 );
 
 }
 
 void loop() {
 
-    intensityPromille = word(hbInt, lbInt);
-    temperatureKelvin = word(hbTemp, lbTemp);
+  intensityPromille = round(mapFloat(analogRead(A0), 0.0, 1023.0, 0.0, 1000.0));
+  temperatureKelvin = map(analogRead(A1), 0, 1023, dmxUniverse.getKelvinLow(), dmxUniverse.getKelvinHigh());
 
   // FILTER OUTPUT
 
   intensityPromilleOutputFiltered = intensityFilter->process(intensityPromille);
   temperatureKelvinOutputFiltered = temperatureFilter->process(temperatureKelvin);
 
-  analogWrite(9, map(round(intensityPromilleOutputFiltered), 0, 1000, 0, 255));
+  analogWrite(9, map(round(intensityPromille), 0, 1000, 0, 255));
 
-  //intensityPromilleOutputFiltered = 1000;
+  static int dimmer_val;
+
+  intensityPromilleOutputFiltered = dimmer_val++ %1000;
   //temperatureKelvinOutputFiltered = temperatureKelvin;
 
-  dmxUniverse.setIntensity(constrain(intensityPromille / 1000.0, 0.0, 1.0));
+  dmxUniverse.setIntensity(constrain(intensityPromilleOutputFiltered / 1000.0, 0.0, 1.0));
   dmxUniverse.setTemperatureKelvin(round(temperatureKelvinOutputFiltered));
 
   dmxUniverse.updateDmxMaster(dmx_master);
-  // dmxUniverse.updateDmxSimple();
-}
-
-void receiveEvent(int howMany)
-{
-  if (Wire.available() == 4)   // if four bytes were received
-  {
-    lbInt = Wire.read();
-    hbInt = Wire.read();
-    lbTemp = Wire.read();
-    hbTemp = Wire.read();
-  }
+  //dmxUniverse.updateDmxSimple();
 }
 
 void requestEvent()

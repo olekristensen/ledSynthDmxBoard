@@ -197,7 +197,8 @@ class DmxUniverse {
       return currentAddress;
     };
 */
-/*    int updateDmxSimple() {
+/*
+    int updateDmxSimple() {
       int currentAddress = 0;
       if (needsUpdate) {
         DmxFixture * currentFixture = head;
