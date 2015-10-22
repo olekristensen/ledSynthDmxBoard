@@ -12,8 +12,8 @@ DMX_Master        dmx_master ( DMX_MASTER_CHANNELS, RXEN_PIN );
 unsigned int intensityPromille = 0;
 unsigned int temperatureKelvin = 2700;
 
-float intensityPromilleOutputFiltered = intensityPromille;
-float temperatureKelvinOutputFiltered = temperatureKelvin;
+float intensityPromilleOutputFiltered = intensityPromille * 1.0;
+float temperatureKelvinOutputFiltered = temperatureKelvin * 1.0;
 
 Biquad *intensityFilter = new Biquad(bq_type_lowpass, 2.5 / 20.0,  0.7071, 0.0);
 Biquad *temperatureFilter = new Biquad(bq_type_lowpass, 2.5 / 20.0,  0.7071, 0.0);
