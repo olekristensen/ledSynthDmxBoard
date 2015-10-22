@@ -29,7 +29,7 @@ class DmxFixture {
       _kelvinHigh = kelvinHigh;
       _channelCount = channelCount;
     };
-    virtual uint8_t setChannels(byte data[], int startChannel, float normalisedIntensity, int temperatureKelvin);
+    virtual uint8_t setChannels(DMX_FrameBuffer* dmxFrameBuffer, int startChannel, float normalisedIntensity, int temperatureKelvin);
     unsigned int _kelvinLow;
     unsigned int _kelvinHigh;
     uint8_t _channelCount;
@@ -43,10 +43,10 @@ class DmxFixtureCWVW8bit : public DmxFixture {
     }
     const static float gamma = 1.2;
     float invGamma = 1.0 / gamma;
-    uint8_t setChannels(byte data[], int startChannel, float normalisedIntensity, int temperatureKelvin) {
+    uint8_t setChannels(DMX_FrameBuffer* dmxFrameBuffer, int startChannel, float normalisedIntensity, int temperatureKelvin) {
       float temperatureNormalisedInRange = constrain(mapFloat(temperatureKelvin, _kelvinLow, _kelvinHigh, 0.0, 1.0), 0.0, 1.0);
-      data[startChannel] = byte(round(pow(temperatureNormalisedInRange, invGamma) * normalisedIntensity * 255));
-      data[startChannel + 1] = byte(round(pow((1.0 - temperatureNormalisedInRange), invGamma) * normalisedIntensity * 255));
+      dmxFrameBuffer->setSlotValue(startChannel, byte(round(pow(temperatureNormalisedInRange, invGamma) * normalisedIntensity * 255)));
+      dmxFrameBuffer->setSlotValue(startChannel + 1, byte(round(pow((1.0 - temperatureNormalisedInRange), invGamma) * normalisedIntensity * 255)));
       return _channelCount;
     };
 };
@@ -58,10 +58,10 @@ class DmxFixtureVWCW8bit : public DmxFixture {
     }
     const static float gamma = 1.2;
     float invGamma = 1.0 / gamma;
-    uint8_t setChannels(byte data[], int startChannel, float normalisedIntensity, int temperatureKelvin) {
+    uint8_t setChannels(DMX_FrameBuffer* dmxFrameBuffer, int startChannel, float normalisedIntensity, int temperatureKelvin) {
       float temperatureNormalisedInRange = constrain(mapFloat(temperatureKelvin, _kelvinLow, _kelvinHigh, 0.0, 1.0), 0.0, 1.0);
-      data[startChannel] = byte(round(pow(1.0 - temperatureNormalisedInRange, invGamma) * normalisedIntensity * 255));
-      data[startChannel + 1] = byte(round(pow((temperatureNormalisedInRange), invGamma) * normalisedIntensity * 255));
+      dmxFrameBuffer->setSlotValue(startChannel, byte(round(pow(1.0 - temperatureNormalisedInRange, invGamma) * normalisedIntensity * 255)));
+      dmxFrameBuffer->setSlotValue(startChannel + 1, byte(round(pow((temperatureNormalisedInRange), invGamma) * normalisedIntensity * 255)));
       return _channelCount;
     };
 };
@@ -71,10 +71,10 @@ class DmxFixtureIT8bit : public DmxFixture {
     DmxFixtureIT8bit(int kelvinLow = 2700, int kelvinHigh = 6500, int channelCount = 2) : DmxFixture(kelvinLow, kelvinHigh, channelCount) {
       ;
     }
-    uint8_t setChannels(byte data[], int startChannel, float normalisedIntensity, int temperatureKelvin) {
+    uint8_t setChannels(DMX_FrameBuffer* dmxFrameBuffer, int startChannel, float normalisedIntensity, int temperatureKelvin) {
       float temperatureNormalisedInRange = constrain(mapFloat(temperatureKelvin, _kelvinLow, _kelvinHigh, 0.0, 1.0), 0.0, 1.0);
-      data[startChannel] = byte(round(normalisedIntensity * 255));
-      data[startChannel + 1] = byte(round(temperatureNormalisedInRange * 255));
+      dmxFrameBuffer->setSlotValue(startChannel, byte(round(normalisedIntensity * 255)));
+      dmxFrameBuffer->setSlotValue(startChannel + 1, byte(round(temperatureNormalisedInRange * 255)));
       return _channelCount;
     };
 };
@@ -84,10 +84,10 @@ class DmxFixtureTI8bit : public DmxFixture {
     DmxFixtureTI8bit(int kelvinLow = 2700, int kelvinHigh = 6500, int channelCount = 2) : DmxFixture(kelvinLow, kelvinHigh, channelCount) {
       ;
     }
-    uint8_t setChannels(byte data[], int startChannel, float normalisedIntensity, int temperatureKelvin) {
+    uint8_t setChannels(DMX_FrameBuffer* dmxFrameBuffer, int startChannel, float normalisedIntensity, int temperatureKelvin) {
       float temperatureNormalisedInRange = constrain(mapFloat(temperatureKelvin, _kelvinLow, _kelvinHigh, 0.0, 1.0), 0.0, 1.0);
-      data[startChannel] = byte(round(temperatureNormalisedInRange * 255));
-      data[startChannel + 1] = byte(round(normalisedIntensity * 255));
+      dmxFrameBuffer->setSlotValue(startChannel, byte(round(temperatureNormalisedInRange * 255)));
+      dmxFrameBuffer->setSlotValue(startChannel + 1, byte(round(normalisedIntensity * 255)));
       return _channelCount;
     };
 };
@@ -115,7 +115,7 @@ class ElforskStrip : public DmxFixtureVWCW8bit {
 
 class DmxUniverse {
   public:
-    DmxUniverse(int numberOfChannels) {
+    DmxUniverse(DMX_FrameBuffer * dFB) {
       head = NULL;
       tail = NULL;
       needsUpdate = false;
@@ -123,7 +123,7 @@ class DmxUniverse {
       _intensity = 0;
       _kelvinHigh = -1;
       _kelvinLow = -1;
-      data = new byte[numberOfChannels];
+      dmxFrameBuffer = dFB;
     };
 
     boolean begin(void);
@@ -141,7 +141,7 @@ class DmxUniverse {
         needsUpdate = true;
       }
     };
-
+/*
     int sendDmx() {
       int currentAddress = 0;
       if (needsUpdate) {
@@ -160,19 +160,14 @@ class DmxUniverse {
       }
       return currentAddress;
     };
-
-    int updateDmxMaster(DMX_Master master) {
-      int currentAddress = 0;
+*/
+    int update() {
+      int currentAddress = 1;
       if (needsUpdate) {
         DmxFixture * currentFixture = head;
         while (currentFixture != NULL) {
-          currentAddress += currentFixture->setChannels(data, currentAddress, _intensity, _kelvin);
+          currentAddress += currentFixture->setChannels(dmxFrameBuffer, currentAddress, _intensity, _kelvin);
           currentFixture = currentFixture->next;
-        }
-        
-
-        for (int i = 0; i < currentAddress; i++) {
-          master.setChannelValue ( i+1, data[i] );
         }
         needsUpdate = false;
       }
@@ -243,7 +238,7 @@ class DmxUniverse {
 
   private:
   
-    byte* data = 0;
+    DMX_FrameBuffer* dmxFrameBuffer;
     DmxFixture* head;
     DmxFixture* tail;
     int _kelvin;
