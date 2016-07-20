@@ -26,6 +26,9 @@
 #include <Wire.h>
 #include "Biquad.h"
 
+const int versionMajor = 0;
+const int versionMinor = 10;
+
 #define DMX_MASTER_CHANNELS   512
 #define RXEN_PIN                2
 #define DMXEN_PIN               7
@@ -264,9 +267,6 @@ void loop()
     // length of a break and mark after break
     dmx_master.breakAndContinue ( break_usec );
   }
-
-  // TODO: Do your other operations part of your
-  // program here...
 
 }
 

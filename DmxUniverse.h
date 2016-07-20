@@ -41,8 +41,8 @@ class DmxFixtureCWVW8bit : public DmxFixture {
     DmxFixtureCWVW8bit(int kelvinLow = 2700, int kelvinHigh = 6500, int channelCount = 2) : DmxFixture(kelvinLow, kelvinHigh, channelCount) {
       ;
     }
-    const static float gamma = 1.2;
-    float invGamma = 1.0 / gamma;
+    static float gamma;
+    static float invGamma;
     uint8_t setChannels(DMX_FrameBuffer* dmxFrameBuffer, int startChannel, float normalisedIntensity, int temperatureKelvin) {
       float temperatureNormalisedInRange = constrain(mapFloat(temperatureKelvin, _kelvinLow, _kelvinHigh, 0.0, 1.0), 0.0, 1.0);
       dmxFrameBuffer->setSlotValue(startChannel, byte(round(pow(temperatureNormalisedInRange, invGamma) * normalisedIntensity * 255)));
@@ -51,13 +51,16 @@ class DmxFixtureCWVW8bit : public DmxFixture {
     };
 };
 
+float DmxFixtureCWVW8bit::gamma = 1.2;
+float DmxFixtureCWVW8bit::invGamma = 1.0 / DmxFixtureCWVW8bit::gamma;
+
 class DmxFixtureVWCW8bit : public DmxFixture {
   public:
     DmxFixtureVWCW8bit(int kelvinLow = 2700, int kelvinHigh = 6500, int channelCount = 2) : DmxFixture(kelvinLow, kelvinHigh, channelCount) {
       ;
     }
-    const static float gamma = 1.2;
-    float invGamma = 1.0 / gamma;
+    static float gamma;
+    static float invGamma;
     uint8_t setChannels(DMX_FrameBuffer* dmxFrameBuffer, int startChannel, float normalisedIntensity, int temperatureKelvin) {
       float temperatureNormalisedInRange = constrain(mapFloat(temperatureKelvin, _kelvinLow, _kelvinHigh, 0.0, 1.0), 0.0, 1.0);
       dmxFrameBuffer->setSlotValue(startChannel, byte(round(pow(1.0 - temperatureNormalisedInRange, invGamma) * normalisedIntensity * 255)));
@@ -65,6 +68,9 @@ class DmxFixtureVWCW8bit : public DmxFixture {
       return _channelCount;
     };
 };
+
+float DmxFixtureVWCW8bit::gamma = 1.2;
+float DmxFixtureVWCW8bit::invGamma = 1.0 / DmxFixtureVWCW8bit::gamma;
 
 class DmxFixtureIT8bit : public DmxFixture {
   public:
@@ -141,26 +147,26 @@ class DmxUniverse {
         needsUpdate = true;
       }
     };
-/*
-    int sendDmx() {
-      int currentAddress = 0;
-      if (needsUpdate) {
-        DmxFixture * currentFixture = head;
-        while (currentFixture != NULL) {
-          currentAddress += currentFixture->setChannels(data, currentAddress, _intensity, _kelvin);
-          currentFixture = currentFixture->next;
-        }
+    /*
+        int sendDmx() {
+          int currentAddress = 0;
+          if (needsUpdate) {
+            DmxFixture * currentFixture = head;
+            while (currentFixture != NULL) {
+              currentAddress += currentFixture->setChannels(data, currentAddress, _intensity, _kelvin);
+              currentFixture = currentFixture->next;
+            }
 
-        Wire.beginTransmission(100); // transmit to device #100 0x64
-        for (int i = 0; i < currentAddress; i++) {
-          Wire.write(data[i]);
-        }
-        Wire.endTransmission();    // stop transmitting
-        needsUpdate = false;
-      }
-      return currentAddress;
-    };
-*/
+            Wire.beginTransmission(100); // transmit to device #100 0x64
+            for (int i = 0; i < currentAddress; i++) {
+              Wire.write(data[i]);
+            }
+            Wire.endTransmission();    // stop transmitting
+            needsUpdate = false;
+          }
+          return currentAddress;
+        };
+    */
     int update() {
       int currentAddress = 1;
       if (needsUpdate) {
@@ -174,42 +180,42 @@ class DmxUniverse {
       return currentAddress;
     };
 
-/*
-    int updateDmxMaster() {
-      int currentAddress = 0;
-      if (needsUpdate) {
-        DmxFixture * currentFixture = head;
-        while (currentFixture != NULL) {
-          currentAddress += currentFixture->setChannels(data, currentAddress, _intensity, _kelvin);
-          currentFixture = currentFixture->next;
-        }
+    /*
+        int updateDmxMaster() {
+          int currentAddress = 0;
+          if (needsUpdate) {
+            DmxFixture * currentFixture = head;
+            while (currentFixture != NULL) {
+              currentAddress += currentFixture->setChannels(data, currentAddress, _intensity, _kelvin);
+              currentFixture = currentFixture->next;
+            }
 
-        for (int i = 0; i < currentAddress; i++) {
-          DmxMaster.write ( i, data[i] );
-        }
-        needsUpdate = false;
-      }
-      return currentAddress;
-    };
-*/
-/*
-    int updateDmxSimple() {
-      int currentAddress = 0;
-      if (needsUpdate) {
-        DmxFixture * currentFixture = head;
-        while (currentFixture != NULL) {
-          currentAddress += currentFixture->setChannels(data, currentAddress, _intensity, _kelvin);
-          currentFixture = currentFixture->next;
-        }
+            for (int i = 0; i < currentAddress; i++) {
+              DmxMaster.write ( i, data[i] );
+            }
+            needsUpdate = false;
+          }
+          return currentAddress;
+        };
+    */
+    /*
+        int updateDmxSimple() {
+          int currentAddress = 0;
+          if (needsUpdate) {
+            DmxFixture * currentFixture = head;
+            while (currentFixture != NULL) {
+              currentAddress += currentFixture->setChannels(data, currentAddress, _intensity, _kelvin);
+              currentFixture = currentFixture->next;
+            }
 
-        for (int i = 0; i < currentAddress; i++) {
-         DmxSimple.write(i+1, data[i]);
-         }
-        needsUpdate = false;
-      }
-      return currentAddress;
-    };
-*/
+            for (int i = 0; i < currentAddress; i++) {
+             DmxSimple.write(i+1, data[i]);
+             }
+            needsUpdate = false;
+          }
+          return currentAddress;
+        };
+    */
     void addFixture(DmxFixture * newFixture) {
       newFixture->next = NULL;
 
@@ -237,7 +243,7 @@ class DmxUniverse {
     }
 
   private:
-  
+
     DMX_FrameBuffer* dmxFrameBuffer;
     DmxFixture* head;
     DmxFixture* tail;
